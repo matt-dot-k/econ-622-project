@@ -51,7 +51,9 @@
         y_{t+k} = \alpha^{(k)} + \beta^{(k)}x_t + \Gamma^{(k)}\mathbf{W}_t + u_{t+k}
     \end{equation*}
 
-    $\hat{\beta}^{(k)}$ captures the impulse response at horizon $k$. 
+    where $x_t$ are exogenous variable(s) and $W_t$ is a vector of control variables. 
+   
+    Under this setup, $\hat{\beta}^{(k)}$ captures the impulse response at horizon $k$. 
 
 \end{frame}
 
@@ -79,9 +81,9 @@
 
 \begin{frame}{Smooth Local Projections}
    
-	Barnichon and Brownlees (2019) propose utilising B-splines to smooth the resulting sequence of LP estimates $\hat{\beta}^{(k)}$
+	Barnichon and Brownlees (2019) propose utilising B-splines to smooth the resulting sequence of LP estimates $\hat{\beta}^{(k)}$ \medskip
 
-	IRFs estimated by LP can deviate from the true IRF $\to$ smoothing can bring the estimated impulse responses closer to the actual DGP
+	IRFs estimated by LP can deviate from the true IRF $\to$ smoothing can bring the estimated impulse responses closer to the actual DGP \medskip
 
 	B-splines are also a well-suited smoothing method here:
 
