@@ -99,6 +99,19 @@
 
 \end{frame}
 
+\begin{frame}{B-Splines: An Overview}
+    B-splines (basis splines) are locally supported polynomials smoothly connected at knots.
+    \begin{itemize}
+        \item Defined by the set of knots and degree of the polynomial
+        \item Knots determine where the pieces of the B-spline meet, and the degree determines the smoothness of the resulting function
+        \item Nonzero only on a small interval defined by the knots
+    \end{itemize}
+    A spline is constructed as a linear combination of these basis functions, with coefficients determined by the data. \medskip
+
+    Hence we are estimating local projections as linear combinations of smoothly connected polynomials
+    
+\end{frame}
+
 \begin{frame}{Implementation}
 
     Plan: write a generic python implementation of the smooth LP estimation procedure of Barnichon and Brownlees (2019) \medskip
