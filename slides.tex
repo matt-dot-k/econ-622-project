@@ -45,7 +45,7 @@
 
     \end{itemize} \medskip
 
-    Impulse response estimation usually tends to be handled by VAR/SVAR methods. Is there possibly a
+    Impulse response estimation usually tends to be handled by vector autoregression models. Is there possibly a
     better way?
 
 \end{frame}
@@ -56,17 +56,17 @@
     responses. \medskip
 
     Basic idea: Given variables $y_t$, instead of estimating one model just regress future values
-    of $y$ on current values at each horizon $k$. \medskip
+    of $y$ on current values at each horizon $h$. \medskip
     
     At each horizon, run the following OLS regression:
 
     \begin{equation*}
-        y_{t+k} = \alpha^{(k)} + \beta^{(k)}x_t + \Gamma^{(k)}\mathbf{W}_t + u_{t+k}
+        y_{t+h} = \alpha_{(h)} + \beta_{(h)}x_t + \Gamma_{(h)}\mathbf{W}_t + u_{(h),t+h}
     \end{equation*}
 
     where $x_t$ are exogenous variable(s) and $W_t$ is a vector of control variables. 
    
-    Under this setup, $\hat{\beta}^{(k)}$ captures the impulse response at horizon $k$. 
+    Under this setup, $\hat{\beta}_{(h)}$ captures the impulse response at horizon $h$. 
 
 \end{frame}
 
@@ -82,22 +82,22 @@
 
     \begin{itemize}
 
-        \item Since IRF is just vector of scalar values, can apply different smoothing methods
+        \item Since IRFs are just vectors of scalar values, can apply different smoothing methods
         \item More flexible estimation options
         
     \end{itemize}
 
     Consistency: If the true DGP is VAR(p) and LP estimator includes the same lag structure, then
-    $\hat{\Gamma}_1^{(k)} \to_p A_1^k$ as $T \to \infty$.
+    $\hat{\Gamma}_1_{(h)} \to_p A_1^h$ as $T \to \infty$.
 
 \end{frame}
 
 \begin{frame}{Smooth Local Projections}
    
 	Barnichon and Brownlees (2019) propose utilising B-splines to smooth the resulting sequence
-    of LP estimates $\hat{\beta}^{(k)}$ \medskip
+    of LP estimates $\hat{\beta}_{(h)}$ \medskip
 
-	IRFs estimated by LP can deviate from the true IRF $\to$ smoothing can bring estimated
+	IRFs estimated by LP can deviate from the true IRF and be quite jagged even if the underlying IRF is smooth $\to$ smoothing can bring estimated
     impulse responses closer to the actual DGP \medskip
 
 	B-splines are also a well-suited smoothing method here:
@@ -128,13 +128,15 @@
     the data \medskip
 
     In short, we're really just interpolating the LP estimates $\beta^{(k)}$ with linear combinations of
-    smooth polynomials (usually cubic ones)
+    smooth polynomials (usually cubic)
     
 \end{frame}
 
+
+
 \begin{frame}{Where does our project fit in?}
 
-    Plan: write a generic python implementation of the smooth LP estimation procedure of Barnichon and
+    Plan: write a generic python implementation of the SLP estimation procedure of Barnichon and
     Brownlees (2019) \medskip
 
     Objective: a fully-functioning set of methods to estimate IRFs by SLP given any arbitrary
