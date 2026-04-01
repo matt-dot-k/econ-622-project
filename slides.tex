@@ -22,7 +22,7 @@
   \end{frame}
 }
 
-\title{Impulse Response Estimation by Smooth Local Projections (LP)}
+\title{Impulse Response Estimation by Smooth Local Projections (SLPs)}
 \subtitle{Matthew Kielar \& Elijah Adrian}
 \date[]{ECON 622 001}
 
@@ -44,13 +44,13 @@
     \end{itemize} \bigskip
 
     Impulse response estimation usually tends to be handled by vector autoregression models. Is there possibly
-    a `better way?
+    a better way?
 
 \end{frame}
 
-\begin{frame}{Local Projections (LP)}
+\begin{frame}{Local Projections (LPs)}
 
-    Jorda (2005) proposed local projections (LP) as an alternative method for estimating impulse
+    Jorda (2005) proposed local projections (LPs) as an alternative method for estimating impulse
     responses. \bigskip
 
     Basic idea: Given variables $y_t$, instead of estimating one model just regress future values
@@ -141,11 +141,12 @@
 
 \begin{frame}{Where does our project fit in?}
 
-    Plan: write a generic python implementation of the smooth LP estimation procedure of Barnichon and
+    Plan: write a generic python implementation of the SLP estimation procedure of Barnichon and
     Brownlees (2019) \bigskip
 
     Objective: a fully-functioning set of methods to estimate IRFs by SLP given any arbitrary
-    time-series dataframe \bigskip	
+    time-series dataframe, along with a set of examples comparing the SLP method to standard VAR-based IRFs, using both simulated and real data
+    \bigskip
 
     Some features we might consider (subject to revision): \bigskip
 
@@ -154,6 +155,7 @@
         \item Method to handle exogenous variables (analogue to VAR-X)
         \item Extra smoothing options (GAM, p-splines, etc.)
         \item Some plotting functionality
+        \item Turning the code into a Python package for use by other researchers
     
     \end{itemize}
 
