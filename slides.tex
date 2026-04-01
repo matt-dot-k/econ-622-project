@@ -32,8 +32,6 @@
     \titlepage
 \end{frame}
 
-\subsection{Overview} 
-
 \begin{frame}{Overview}
 
     Estimation of impulse response functions (IRFs) is a cornerstone of modern macroeconomic analysis \bigskip
@@ -45,8 +43,8 @@
 
     \end{itemize} \bigskip
 
-    Impulse response estimation usually tends to be handled by VAR/SVAR methods. Is there possibly a
-    better way?
+    Impulse response estimation usually tends to be handled by vector autoregression models. Is there possibly
+    a `better way?
 
 \end{frame}
 
@@ -61,7 +59,7 @@
     At each horizon, run the following OLS regression:
 
     \begin{equation*}
-        y_{t+k} = \alpha^{(k)} + \beta^{(k)}x_t + \Gamma^{(k)}\mathbf{W}_t + u_{t+k}
+        y_{t+h} = \alpha^{(k)} + \beta^{(k)}x_t + \Gamma^{(k)}\mathbf{W}_t + u_{(k),t+h}
     \end{equation*}
 
     where $x_t$ are exogenous variable(s) and $W_t$ is a vector of control variables. \bigskip
@@ -82,7 +80,7 @@
 
     \begin{itemize}
 
-        \item Since IRF is just vector of scalar values, can apply different smoothing methods
+        \item Since IRFs are just vectors of scalar values, can apply different smoothing methods
         \item More flexible estimation options
         
     \end{itemize} \bigskip
@@ -129,7 +127,7 @@
 
     In short, we're really just interpolating the LP estimates $\beta^{(k)}$ with linear combinations of
     smooth polynomials
-    
+
 \end{frame}
 
 \begin{frame}{B-Splines}
