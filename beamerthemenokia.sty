@@ -1,0 +1,381 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{beamerthemenokia}[2026/02/17 v2.1 Nokia 3210 Beamer Theme]
+
+%% ============================================================
+%% Packages
+%% ============================================================
+\RequirePackage{tikz}
+\RequirePackage{xfp}
+\RequirePackage{iftex}
+\usetikzlibrary{calc}
+
+%% ============================================================
+%% Font option: criovision (default), ocr, courier, cascadia
+%%
+%%   \usetheme[font=ocr]{nokia}
+%%
+%% Criovision — blocky display font (letters only, no digits)
+%% OCR A Extended — machine-readable, very retro
+%% Courier 10 Pitch — classic monospace typewriter
+%% Cascadia Code — modern monospace, clean and clear
+%% ============================================================
+\def\nokia@fontchoice{criovision}
+\DeclareOptionBeamer{font}{\def\nokia@fontchoice{#1}}
+\ProcessOptionsBeamer
+
+\ifxetex
+  \RequirePackage{fontspec}
+\else\ifluatex
+  \RequirePackage{fontspec}
+\else
+  \RequirePackage[T1]{fontenc}
+  \RequirePackage{courier}
+  \renewcommand{\familydefault}{\ttdefault}
+\fi\fi
+
+%% Set fonts based on choice (XeLaTeX / LuaLaTeX only)
+\newcommand{\nokiafont}{}
+\@ifpackageloaded{fontspec}{%
+  %% Use \ifx on expanded definitions for string comparison
+  \def\nokia@tmp@criovision{criovision}%
+  \def\nokia@tmp@ocr{ocr}%
+  \def\nokia@tmp@courier{courier}%
+  \def\nokia@tmp@cascadia{cascadia}%
+  %
+  \ifx\nokia@fontchoice\nokia@tmp@criovision
+    % Criovision for titles (letters only), Courier 10 Pitch for body
+    \newfontfamily\nokiatitlefont{Criovision-Font}
+    \renewcommand{\nokiafont}{\nokiatitlefont}
+    \setmainfont{Courier 10 Pitch}[BoldFont=Courier 10 Pitch]
+    \setsansfont{Courier 10 Pitch}[BoldFont=Courier 10 Pitch]
+    \setmonofont{Courier 10 Pitch}
+  \fi
+  \ifx\nokia@fontchoice\nokia@tmp@ocr
+    % OCR A Extended — full character set, very retro
+    \setmainfont{OCR A Extended}
+    \setsansfont{OCR A Extended}
+    \setmonofont{OCR A Extended}
+  \fi
+  \ifx\nokia@fontchoice\nokia@tmp@courier
+    % Courier 10 Pitch — classic monospace
+    \setmainfont{Courier 10 Pitch}[BoldFont=Courier 10 Pitch]
+    \setsansfont{Courier 10 Pitch}[BoldFont=Courier 10 Pitch]
+    \setmonofont{Courier 10 Pitch}
+  \fi
+  \ifx\nokia@fontchoice\nokia@tmp@cascadia
+    % Cascadia Code — modern, clean monospace
+    \setmainfont{Cascadia Code}
+    \setsansfont{Cascadia Code}
+    \setmonofont{Cascadia Code}
+  \fi
+}{}
+
+%% ============================================================
+%% Colors
+%% ============================================================
+\definecolor{NokiaGreen}{RGB}{127,145,119}     % LCD background
+\definecolor{NokiaDark}{RGB}{15,20,15}          % Text / pixel black
+\definecolor{NokiaAccent}{RGB}{80,100,75}       % Subtle accent (darker green)
+\definecolor{NokiaGreenLight}{RGB}{140,158,132} % Empty battery segment
+\definecolor{NokiaBezel}{RGB}{58,62,58}         % Screen surround / bezel
+
+%% ============================================================
+%% Beamer color theme
+%% ============================================================
+\mode<presentation>
+
+\setbeamercolor{background canvas}{bg=NokiaBezel}
+\setbeamercolor{normal text}{fg=NokiaDark}
+\setbeamercolor{structure}{fg=NokiaDark}
+\setbeamercolor{frametitle}{fg=NokiaDark}
+\setbeamercolor{framesubtitle}{fg=NokiaDark}
+\setbeamercolor{itemize item}{fg=NokiaDark}
+\setbeamercolor{itemize subitem}{fg=NokiaDark}
+\setbeamercolor{enumerate item}{fg=NokiaDark,bg=NokiaGreen}
+\setbeamercolor{enumerate subitem}{fg=NokiaDark}
+\setbeamercolor{block title}{fg=NokiaDark,bg=NokiaAccent!40}
+\setbeamercolor{block body}{fg=NokiaDark,bg=NokiaGreenLight!50}
+\setbeamercolor{block title alerted}{fg=NokiaGreen,bg=NokiaDark}
+\setbeamercolor{block body alerted}{fg=NokiaDark,bg=NokiaGreenLight!50}
+\setbeamercolor{alerted text}{fg=NokiaDark}
+\setbeamercolor{footnote}{fg=NokiaDark}
+\setbeamercolor{footnote mark}{fg=NokiaDark}
+
+%% ============================================================
+%% Beamer font theme
+%% ============================================================
+\setbeamerfont{title}{size=\LARGE,series=\bfseries,family=\nokiafont}
+\setbeamerfont{subtitle}{size=\large,family=\nokiafont}
+\setbeamerfont{author}{size=\normalsize}
+\setbeamerfont{date}{size=\small}
+\setbeamerfont{institute}{size=\small}
+\setbeamerfont{frametitle}{size=\large,series=\bfseries,family=\nokiafont}
+\setbeamerfont{block title}{size=\normalsize,series=\bfseries}
+
+%% ============================================================
+%% Inner theme
+%% ============================================================
+\useinnertheme{rectangles}
+
+%% Proposal 1: Snake-head itemize bullet
+%% A tiny pixel-art snake head: 3x3 grid with an "eye" notch
+\newcommand{\nokia@snakehead}{%
+  \begin{tikzpicture}[x=1.4pt, y=1.4pt, baseline=-1pt]
+    \fill[NokiaDark] (0,0) rectangle (3,3);        % solid 3x3 body
+    \fill[NokiaGreen] (2,2) rectangle (3,3);        % eye: top-right pixel cleared
+  \end{tikzpicture}%
+}
+\newcommand{\nokia@snakebody}{%
+  \begin{tikzpicture}[x=1.2pt, y=1.2pt, baseline=-0.5pt]
+    \fill[NokiaDark] (0,0) rectangle (2,2);          % smaller 2x2 block
+  \end{tikzpicture}%
+}
+\setbeamertemplate{itemize item}{\nokia@snakehead}
+\setbeamertemplate{itemize subitem}{\nokia@snakebody}
+
+% Enumerate: plain numbers
+\setbeamertemplate{enumerate item}{\insertenumlabel.}
+\setbeamertemplate{enumerate subitem}{\insertenumlabel.\insertsubenumlabel}
+
+%% ============================================================
+%% Margins — right side wider for battery bar
+%% ============================================================
+\setbeamersize{text margin left=20pt, text margin right=35pt}
+
+%% ============================================================
+%% Disable navigation symbols
+%% ============================================================
+\setbeamertemplate{navigation symbols}{}
+
+%% ============================================================
+%% Frame title
+%% ============================================================
+\setbeamertemplate{frametitle}{%
+  \vspace*{4pt}%
+  \usebeamerfont{frametitle}\usebeamercolor[fg]{frametitle}\insertframetitle%
+  \vphantom{g}%
+  \par\vspace*{-2pt}%
+  {\color{NokiaDark}\rule{0.5\paperwidth}{1.2pt}}%
+  \par\vspace*{2pt}%
+}
+
+%% ============================================================
+%% Footer — empty (no page counter)
+%% ============================================================
+\setbeamertemplate{footline}{}
+
+%% ============================================================
+%% Screen shape parameters
+%%
+%% The Nokia 3210 screen has slightly rounded corners and the
+%% top edge is marginally wider than the bottom, giving a subtle
+%% trapezoid.  We draw the LCD green area as this shape, with
+%% the NokiaBezel colour showing through at corners/edges.
+%% ============================================================
+\newlength{\nokia@screen@inset}    \setlength{\nokia@screen@inset}{4pt}
+\newlength{\nokia@screen@radius}   \setlength{\nokia@screen@radius}{10pt}
+\newlength{\nokia@screen@taper}    \setlength{\nokia@screen@taper}{5pt}
+
+%% ============================================================
+%% Vertical battery progress bar (right edge)
+%% ============================================================
+\newlength{\nokia@bat@totalh}   \setlength{\nokia@bat@totalh}{5.2cm}
+\newlength{\nokia@bat@width}    \setlength{\nokia@bat@width}{0.5cm}
+\newlength{\nokia@bat@caph}     \setlength{\nokia@bat@caph}{0.2cm}
+\newlength{\nokia@bat@capw}     \setlength{\nokia@bat@capw}{0.28cm}
+\newlength{\nokia@bat@pad}      \setlength{\nokia@bat@pad}{0.06cm}
+\newlength{\nokia@bat@segpad}   \setlength{\nokia@bat@segpad}{0.05cm}
+
+\newcommand{\nokia@numsegments}{5}
+
+%% ============================================================
+%% Background: screen shape + battery bar
+%% ============================================================
+\setbeamertemplate{background}{%
+  \begin{tikzpicture}[remember picture, overlay]
+    %% ---- Rounded trapezoidal LCD screen ----
+    %% The bezel (NokiaBezel) is the canvas bg. We draw the green
+    %% "screen" as a filled path with rounded corners and slight taper.
+    %%
+    %% Corners: TL, TR (wider), BR, BL (narrower by nokia@screen@taper)
+    \coordinate (scr-tl) at ([xshift=\nokia@screen@inset,
+                              yshift=-\nokia@screen@inset]current page.north west);
+    \coordinate (scr-tr) at ([xshift=-\nokia@screen@inset,
+                              yshift=-\nokia@screen@inset]current page.north east);
+    \coordinate (scr-br) at ([xshift=-\nokia@screen@inset-\nokia@screen@taper,
+                              yshift=\nokia@screen@inset]current page.south east);
+    \coordinate (scr-bl) at ([xshift=\nokia@screen@inset+\nokia@screen@taper,
+                              yshift=\nokia@screen@inset]current page.south west);
+    %
+    \fill[NokiaGreen, rounded corners=\nokia@screen@radius]
+      (scr-tl) -- (scr-tr) -- (scr-br) -- (scr-bl) -- cycle;
+    %
+    %% ---- Proposal 3: Snake game border ----
+    %% Title page: all four edges. Content frames: left + bottom only
+    %% (top clashes with frame title, right clashes with battery bar).
+    \coordinate (brd-tl) at ([xshift=\nokia@screen@inset+8pt,
+                              yshift=-\nokia@screen@inset-8pt]current page.north west);
+    \coordinate (brd-tr) at ([xshift=-\nokia@screen@inset-8pt,
+                              yshift=-\nokia@screen@inset-8pt]current page.north east);
+    \coordinate (brd-br) at ([xshift=-\nokia@screen@inset-\nokia@screen@taper-8pt,
+                              yshift=\nokia@screen@inset+8pt]current page.south east);
+    \coordinate (brd-bl) at ([xshift=\nokia@screen@inset+\nokia@screen@taper+8pt,
+                              yshift=\nokia@screen@inset+8pt]current page.south west);
+    %% Bottom edge (always)
+    \draw[NokiaDark, line width=0.8pt]
+      ([xshift=-6pt]brd-bl) -- ([xshift=6pt]brd-br);
+    %% Left edge (always)
+    \draw[NokiaDark, line width=0.8pt]
+      ([yshift=6pt]brd-tl) -- ([yshift=-6pt]brd-bl);
+    %% Top + right edges only on non-numbered frames (title page)
+    \ifnum\insertframenumber<1\relax
+      \draw[NokiaDark, line width=0.8pt]
+        ([xshift=6pt]brd-tl) -- ([xshift=-6pt]brd-tr);
+      \draw[NokiaDark, line width=0.8pt]
+        ([yshift=-6pt]brd-tr) -- ([yshift=6pt]brd-br);
+    \fi
+    %
+    %% ---- Battery bar (only on content frames) ----
+    \ifnum\insertframenumber>0\relax
+    \ifnum\insertframenumber>\insertmainframenumber\relax
+    \else
+      %% Compute fill: how many segments remain
+      %% Frame 1 → full (nokia@numsegments), last frame → 0
+      \pgfmathtruncatemacro{\nokia@filled}{%
+        max(0, min(\nokia@numsegments,
+          round(\nokia@numsegments * (1 - (\insertframenumber - 1) / max(1, \insertmainframenumber - 1)))
+        ))%
+      }%
+      %
+      %% Anchor: right side, vertically centered
+      \coordinate (batbot) at ([xshift=-0.85cm, yshift=-0.5*\nokia@bat@totalh]current page.east);
+      %
+      %% Battery cap (nub on top)
+      \fill[NokiaDark]
+        ([yshift=\nokia@bat@totalh, xshift={-0.5*\nokia@bat@width+0.5*\nokia@bat@capw}]batbot)
+        rectangle
+        ([yshift=\nokia@bat@totalh+\nokia@bat@caph, xshift={0.5*\nokia@bat@width-0.5*\nokia@bat@capw}]batbot);
+      %
+      %% Battery outline
+      \draw[NokiaDark, line width=1.6pt]
+        (batbot) rectangle ([xshift=\nokia@bat@width, yshift=\nokia@bat@totalh]batbot);
+      %
+      %% Segments — filled from bottom up (battery drains downward)
+      \pgfmathsetlengthmacro{\nokia@innerh}{\nokia@bat@totalh - 2*\nokia@bat@pad}
+      \pgfmathsetlengthmacro{\nokia@innerw}{\nokia@bat@width - 2*\nokia@bat@pad}
+      \pgfmathsetlengthmacro{\nokia@segh}{%
+        (\nokia@innerh - (\nokia@numsegments - 1) * \nokia@bat@segpad) / \nokia@numsegments%
+      }%
+      %
+      \foreach \seg in {1,...,\nokia@numsegments} {%
+        \pgfmathsetlengthmacro{\nokia@segbot}{%
+          \nokia@bat@pad + (\seg - 1) * (\nokia@segh + \nokia@bat@segpad)%
+        }%
+        %% seg=1 is bottom, seg=N is top.
+        %% Fill bottom segments: seg <= filled → filled.
+        \ifnum\seg>\nokia@filled\relax
+          % Empty segment — subtle outline
+          \draw[NokiaAccent, line width=0.4pt]
+            ([xshift=\nokia@bat@pad, yshift=\nokia@segbot]batbot)
+            rectangle
+            ([xshift=\nokia@bat@pad+\nokia@innerw, yshift=\nokia@segbot+\nokia@segh]batbot);
+        \else
+          % Filled segment
+          \fill[NokiaDark]
+            ([xshift=\nokia@bat@pad, yshift=\nokia@segbot]batbot)
+            rectangle
+            ([xshift=\nokia@bat@pad+\nokia@innerw, yshift=\nokia@segbot+\nokia@segh]batbot);
+        \fi
+      }%
+    \fi
+    \fi
+  \end{tikzpicture}%
+}
+
+%% ============================================================
+%% Title page
+%% ============================================================
+\setbeamertemplate{title page}{%
+  \begin{tikzpicture}[remember picture, overlay]
+    %% Horizontal rules framing the title block
+    \coordinate (mid) at ([yshift=0.5cm]current page.center);
+    \draw[NokiaDark, line width=1.2pt]
+      ([xshift=20pt, yshift=2.0cm]current page.west) -- ([xshift=-20pt, yshift=2.0cm]current page.east);
+    \draw[NokiaDark, line width=1.2pt]
+      ([xshift=20pt, yshift=-2.5cm]current page.west) -- ([xshift=-20pt, yshift=-2.5cm]current page.east);
+    %% Title — centered
+    \node[text width=0.88\paperwidth, align=center]
+      at ([yshift=0.8cm]mid)
+      {\usebeamerfont{title}\usebeamercolor[fg]{normal text}\inserttitle};
+    %% Subtitle
+    \ifx\insertsubtitle\@empty\else
+      \node[text width=0.88\paperwidth, align=center]
+        at ([yshift=-0.3cm]mid)
+        {\usebeamerfont{subtitle}\usebeamercolor[fg]{normal text}\insertsubtitle};
+    \fi
+    %% Author
+    \node[text width=0.88\paperwidth, align=center]
+      at ([yshift=-1.8cm]mid)
+      {\usebeamerfont{author}\usebeamercolor[fg]{normal text}\insertauthor};
+    %% Date
+    \node[text width=0.88\paperwidth, align=center]
+      at ([yshift=-2.4cm]mid)
+      {\usebeamerfont{date}\usebeamercolor[fg]{normal text}\insertdate};
+    %%
+    %% ---- Proposal 4: Decorative pixel snake on title page ----
+    %% An L-shaped snake in the bottom-left: 5 horizontal segments
+    %% turning upward for 4 segments, with a head at the tip.
+    %% Each segment is a 5pt x 5pt square with 1pt gaps.
+    \newdimen\nokia@sn@sz  \nokia@sn@sz=5pt    % segment size
+    \newdimen\nokia@sn@gap \nokia@sn@gap=1.2pt  % gap between segments
+    \coordinate (snk) at ([xshift=40pt, yshift=35pt]current page.south west);
+    %% Horizontal tail: 5 segments going right
+    \foreach \i in {0,...,4} {%
+      \fill[NokiaDark]
+        ([xshift=\i*\nokia@sn@sz+\i*\nokia@sn@gap]snk)
+        rectangle
+        ([xshift=\i*\nokia@sn@sz+\i*\nokia@sn@gap+\nokia@sn@sz,
+          yshift=\nokia@sn@sz]snk);
+    }%
+    %% Corner segment (turn piece)
+    \fill[NokiaDark]
+      ([xshift=5*\nokia@sn@sz+5*\nokia@sn@gap,
+        yshift=\nokia@sn@sz+\nokia@sn@gap]snk)
+      rectangle
+      ([xshift=5*\nokia@sn@sz+5*\nokia@sn@gap+\nokia@sn@sz,
+        yshift=2*\nokia@sn@sz+\nokia@sn@gap]snk);
+    %% Vertical rise: 3 more segments going up
+    \foreach \j in {2,...,4} {%
+      \fill[NokiaDark]
+        ([xshift=5*\nokia@sn@sz+5*\nokia@sn@gap,
+          yshift=\j*\nokia@sn@sz+\j*\nokia@sn@gap]snk)
+        rectangle
+        ([xshift=5*\nokia@sn@sz+5*\nokia@sn@gap+\nokia@sn@sz,
+          yshift=\j*\nokia@sn@sz+\j*\nokia@sn@gap+\nokia@sn@sz]snk);
+    }%
+    %% Snake head (topmost segment with eye notch)
+    \fill[NokiaDark]
+      ([xshift=5*\nokia@sn@sz+5*\nokia@sn@gap,
+        yshift=5*\nokia@sn@sz+5*\nokia@sn@gap]snk)
+      rectangle
+      ([xshift=5*\nokia@sn@sz+5*\nokia@sn@gap+\nokia@sn@sz,
+        yshift=5*\nokia@sn@sz+5*\nokia@sn@gap+\nokia@sn@sz]snk);
+    %% Eye: clear a pixel in the top-right of the head
+    \fill[NokiaGreen]
+      ([xshift=5*\nokia@sn@sz+5*\nokia@sn@gap+0.6*\nokia@sn@sz,
+        yshift=5*\nokia@sn@sz+5*\nokia@sn@gap+0.6*\nokia@sn@sz]snk)
+      rectangle
+      ([xshift=5*\nokia@sn@sz+5*\nokia@sn@gap+\nokia@sn@sz,
+        yshift=5*\nokia@sn@sz+5*\nokia@sn@gap+\nokia@sn@sz]snk);
+    %%
+    %% Food pellet — a small dot ahead of the snake
+    \fill[NokiaDark]
+      ([xshift=5*\nokia@sn@sz+5*\nokia@sn@gap+0.15*\nokia@sn@sz,
+        yshift=7*\nokia@sn@sz+7*\nokia@sn@gap]snk)
+      rectangle
+      ([xshift=5*\nokia@sn@sz+5*\nokia@sn@gap+0.85*\nokia@sn@sz,
+        yshift=7*\nokia@sn@sz+7*\nokia@sn@gap+0.7*\nokia@sn@sz]snk);
+  \end{tikzpicture}%
+}
+
+\mode<all>

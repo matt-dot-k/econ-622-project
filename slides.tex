@@ -1,4 +1,4 @@
-\documentclass{beamer}
+\documentclass[aspectratio=1610]{beamer}
 
 \usepackage{amsmath, amsfonts, amssymb}
 \usepackage{booktabs}
@@ -7,7 +7,7 @@
 \usepackage{fontspec}
 
 \beamertemplatenavigationsymbolsempty
-\usetheme{metropolis}
+\usetheme[font=cascadia]{nokia}
 
 \DeclareMathOperator*{\argmax}{arg\,max}
 
@@ -28,7 +28,7 @@
 
 \begin{document}
 
-\begin{frame}
+\begin{frame}[plain, noframenumbering]
     \titlepage
 \end{frame}
 
@@ -36,14 +36,14 @@
 
 \begin{frame}{Overview}
 
-    Estimation of impulse response functions (IRFs) is a cornerstone of modern macroeconomic analysis \medskip
+    Estimation of impulse response functions (IRFs) is a cornerstone of modern macroeconomic analysis \bigskip
 
     \begin{itemize}
         
         \item Illustrate how different shocks propagate throughout the real economy
         \item Useful for constructing counterfactuals or "what-if" analysis
 
-    \end{itemize} \medskip
+    \end{itemize} \bigskip
 
     Impulse response estimation usually tends to be handled by VAR/SVAR methods. Is there possibly a
     better way?
@@ -53,10 +53,10 @@
 \begin{frame}{Local Projections (LP)}
 
     Jorda (2005) proposed local projections (LP) as an alternative method for estimating impulse
-    responses. \medskip
+    responses. \bigskip
 
     Basic idea: Given variables $y_t$, instead of estimating one model just regress future values
-    of $y$ on current values at each horizon $k$. \medskip
+    of $y$ on current values at each horizon $k$. \bigskip
     
     At each horizon, run the following OLS regression:
 
@@ -64,7 +64,7 @@
         y_{t+k} = \alpha^{(k)} + \beta^{(k)}x_t + \Gamma^{(k)}\mathbf{W}_t + u_{t+k}
     \end{equation*}
 
-    where $x_t$ are exogenous variable(s) and $W_t$ is a vector of control variables. 
+    where $x_t$ are exogenous variable(s) and $W_t$ is a vector of control variables. \bigskip
    
     Under this setup, $\hat{\beta}^{(k)}$ captures the impulse response at horizon $k$. 
 
@@ -73,19 +73,19 @@
 \begin{frame}{Why LP?}
 
     VARs are efficient, but sensitive to misspecification. Incorrect specification at
-    the first lag results in errors being iterated forward. \medskip
+    the first lag results in errors being iterated forward. \bigskip
 
-    Local projections are considerably more robust in this regard. \medskip 
+    Local projections are considerably more robust in this regard. \bigskip 
 
     Estimation of separate OLS equations for each horizon $\to$ errors don't propagate
-    across horizons. \medskip 
+    across horizons. \bigskip 
 
     \begin{itemize}
 
         \item Since IRF is just vector of scalar values, can apply different smoothing methods
         \item More flexible estimation options
         
-    \end{itemize}
+    \end{itemize} \bigskip
 
     Consistency: If the true DGP is VAR(p) and LP estimator includes the same lag structure, then
     $\hat{\Gamma}_1^{(k)} \to_p A_1^k$ as $T \to \infty$.
@@ -95,12 +95,12 @@
 \begin{frame}{Smooth Local Projections}
    
 	Barnichon and Brownlees (2019) propose utilising B-splines to smooth the resulting sequence
-    of LP estimates $\hat{\beta}^{(k)}$ \medskip
+    of LP estimates $\hat{\beta}^{(k)}$ \bigskip
 
 	IRFs estimated by LP can deviate from the true IRF $\to$ smoothing can bring estimated
-    impulse responses closer to the actual DGP \medskip
+    impulse responses closer to the actual DGP \bigskip
 
-	B-splines are also a well-suited smoothing method here:
+	B-splines are also a well-suited smoothing method here: \bigskip
 
 	\begin{itemize}
 		
@@ -114,33 +114,42 @@
 
 \end{frame}
 
-\begin{frame}{B-Splines - Overview}
+\begin{frame}{B-Splines}
 
-    A B-spline is a collection of piecewise polynomials $B_{i,p}(x)$ in a variable $x$
+    A B-spline is a collection of piecewise polynomials $B_{i,p}(x)$ in a variable $x$ \bigskip
 
     \begin{itemize}
-        \item Values of $x$ where the "pieces" are connected are known as the "knots" of the spline
+        \item Values of $x$ where the ``pieces'' are connected are known as the ``knots'' of the spline
         \item Smoothness determined by the degree $p$ of the polynomials  
         \item Nonzero only on a small interval defined by the knots
-    \end{itemize}
+    \end{itemize} \bigskip
 
     The splines are constructed as a weighted sum of these basis functions, with weights determined from
-    the data \medskip
+    the data \bigskip
 
     In short, we're really just interpolating the LP estimates $\beta^{(k)}$ with linear combinations of
-    smooth polynomials (usually cubic ones)
+    smooth polynomials
     
+\end{frame}
+
+\begin{frame}{B-Splines}
+
+    \begin{figure}[h!]
+        \centering
+        \includegraphics[width=0.85\textwidth]{uniform-b-splines.png}
+    \end{figure}
+
 \end{frame}
 
 \begin{frame}{Where does our project fit in?}
 
     Plan: write a generic python implementation of the smooth LP estimation procedure of Barnichon and
-    Brownlees (2019) \medskip
+    Brownlees (2019) \bigskip
 
     Objective: a fully-functioning set of methods to estimate IRFs by SLP given any arbitrary
-    time-series dataframe \medskip	
+    time-series dataframe \bigskip	
 
-    Some features we might consider (subject to revision): \medskip
+    Some features we might consider (subject to revision): \bigskip
 
     \begin{itemize}
         
