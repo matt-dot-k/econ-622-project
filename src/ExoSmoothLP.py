@@ -1,11 +1,6 @@
 import numpy as np
 import pandas as pd
-import scipy.stats as stats
-import scipy.interpolate as interp
 import statsmodels.api as sm
-from pyGAM import LinearGAM, f
-import matplotlib.pyplot as plt
-import seaborn as sns
 
 class LinearProjections:
 
@@ -15,7 +10,7 @@ class LinearProjections:
         Y = Y_df.to_numpy()
         contemp = data.columns[:data.columns.get_loc(shock)].tolist()
         Z = data[contemp].to_numpy()
-        x = data[shock_col].to_numpy()
+        x = data[shock].to_numpy()
         var_names = Y_df.columns.tolist()
 
         self.Y = Y
@@ -44,7 +39,7 @@ class LinearProjections:
             y = self.Y[:, j]
             for h in range(self.H + 1):
                 T_h = self.T - self.p - h
-                X_h = np.append(self.x[:T_h].reshape(-1, 1), W[:T_h, :], axis = 1)
+                X_h = np.append(self.x[self.p:self.p + T_h].reshape(-1, 1), W[:T_h, :], axis = 1)
                 X_h = sm.add_constant(X_h)
                 y_h = y[self.p + h: ]
                 lp_mod = sm.OLS(endog = y_h, exog = X_h)
@@ -60,7 +55,7 @@ class LinearProjections:
             y = self.Y[:, j]
             for h in range(self.H + 1):
                 T_h = self.T - self.p - h
-                X_h = np.hstack([self.x[:T_h], self.Z[:T_h], self.W[:T_h]])
+                X_h = np.hstack([self.x[self.p:self.p + T_h], self.Z[self.p:self.p + T_h], self.W[:T_h]])
                 X_h = sm.add_constant(X_h)
                 y_h = y[self.p + h: ]
                 lp_mod = sm.OLS(endog = y_h, exog = X_h)
@@ -77,8 +72,8 @@ class LinearProjections:
             self.irf[:, j] = bs(h_grid)
         return self.irf
 
-    def smooth_irf_gam(self):
-        self.irf = np.empty((n_poins, self.k))
+    def smooth_irf_gam(self, n_points: int = 1000):
+        self.irf = np.empty((n_points, self.k))
         h_grid = np.linspace(0, self.H + 1, n_points)
         for j in range(self.k):
             beta_j = self.beta[:, j]
@@ -106,6 +101,6 @@ if __name__ == "__main__":
     Y = np.random.randn(T, n)
     x = np.random.randn(T)
 
-    model = ExoSmoothLP(Y = Y, p = p, H = H)
+    model = LinearProjections(Y = Y, p = p, H = H)
     model.estimate()
     model.irf
