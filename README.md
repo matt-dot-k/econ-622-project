@@ -6,9 +6,9 @@ This repository consists of a collection of python methods which implement the s
 
 Local projections estimate the impulse response of a variable $y_t$ at horizon $h$ by the following OLS regression:
 
-$$y_{t+h} = \mu_h + \beta_h x_t + \gamma_h'r_t + \sum_{k=1}^p \delta'_{h,k}\mathbf{W}_{t-k} + \varepsilon_{h,t}$$
+$$y_{t+h} = \mu_h + \beta_h x_t + \gamma_h'r_t + \sum_{k=1}^p \delta'_{h,k}w_{t-k} + \varepsilon_{h,t}$$
 
-where $x_t$ is a shock vector, $r_t$ are contemporaneous controls, $\mathbf{W}_{t-\ell}$ is a matrix with lags of endogenous variables, and $\varepsilon_{h,t}$ is the projection residual at horizon $h$. Barnichon and Brownlees (2019) propose utilising penalised B-splines to smooth the resulting sequence of impulse response coefficients $\{\beta_1, ..., \beta_h\}$.
+where $x_t$ is a shock vector, $r_t$ are contemporaneous controls, $w_{t-k}$ is a matrix with lags of endogenous variables, and $\varepsilon_{h,t}$ is the projection residual at horizon $h$. Barnichon and Brownlees (2019) propose utilising penalised B-splines to smooth the resulting sequence of impulse response coefficients $\{\beta_1, ..., \beta_h\}$.
 
 This library contains generic routines for LP estimation of impulse response functions for endogenous and exogenous shocks and simple B-spline smoothing. In addition, it also includes some additional smoothing methods
 
