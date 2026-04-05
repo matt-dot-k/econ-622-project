@@ -16,30 +16,26 @@ class BSplineSmoother:
         for j in range(results.k):
             beta_j = results.beta[:, j]
             bs = interp.make_smoothing_spline(x = np.arange(0, results.H + 1), y = beta_j, lam = self.lam)
-            irf[:, j] = bs(h_grid)
-            
+            irf[:, j] = bs(h_grid)    
         return irf
 
-class GAMSmoother:
+class LoessSmoother:
     
-    def __init__(self, n_points: int = 1000):
-
-        self.n_points = n_points
-
+    def __init__(self, frac: float = 0.5):
+        self.frac = frac
+    
     def smooth(self, results: LPResults) -> np.ndarray:
-        irf = np.empty((self.n_points, results.k))
-        h_grid = np.linspace(0, results.H + 1, self.n_points)
-        for j in range(self.k):
+        irf = np.empty((results.H + 1, results.k))
+        h_grid = np.arange(results.H + 1)
+        for j in range(results.k):
             beta_j = results.beta[:, j]
-            gam = LinearGAM(s(0), fit_intercept = True).fit(X = np.arange(0, results.H + 1), y = beta_j)
-            irf[:, j] = gam.predict(h_grid)
-        
+            loess = sm.nonparametric.lowess(endog = beta_j, exog = h_grid, frac = self.frac)
+            irf[:, j] = loess[:, 1]
         return irf
 
 class KernelSmoother:
 
     def __init__(self, kernel: str = "gaussian", band: float = 1.0):
-        
         self.kernel = kernel
         self.band = band
 
@@ -55,4 +51,5 @@ class KernelSmoother:
                 u = dist / self.band
                 S = np.where(np.abs(u) <= 1, 0.75 * (1 - u ** 2), 0.0)
         S = S / S.sum(axis = 1, keepdims = True)
-        return S @ results.beta
+        irf = S @ results.beta
+        return irf
