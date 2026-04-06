@@ -1,9 +1,2 @@
 # ECON 622 Final Project
-
----
-
-An implementation of Barnichon and Brownlees (2019)
-
-### References
-
-Barnichon, R. and Brownlees, C. (2019). Impulse response estimation by smooth local projections. *The Review of Economics and Statistics*, 101(3), 522–530. https://doi.org/10.1162/rest_a_00778 
+This branch contains examples of IRF estimation by SLPs using our implementation. Estimation is done with both simulated data based on a simple RBC model and using real data. The simulations allow for comparison of the SLP results to the true underlying IRF and VAR estimates. The real data allows for comparison to VAR estimates and demonstrates an application to monetary policy research. 
