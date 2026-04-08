@@ -7,7 +7,7 @@
 \usepackage{fontspec}
 
 \beamertemplatenavigationsymbolsempty
-\usetheme[font=cascadia]{nokia}
+\usetheme{metropolis}
 
 \DeclareMathOperator*{\argmax}{arg\,max}
 
@@ -43,28 +43,29 @@
 
     \end{itemize} \bigskip
 
-    Impulse response estimation usually tends to be handled by vector autoregression models. Is there possibly
-    a better way?
+    Impulse response estimation usually tends to be handled by vector autoregression models. Is there
+    possibly a better way?
 
 \end{frame}
 
 \begin{frame}{Local Projections (LPs)}
 
-    Jorda (2005) proposed local projections (LPs) as an alternative method for estimating impulse
-    responses. \bigskip
+    Jorda (2005) proposed local projections (LPs) as an alternative method for estimating
+    impulse responses. \bigskip
 
-    Basic idea: Given variables $y_t$, instead of estimating one model just regress future values
-    of $y$ on current values at each horizon $k$. \bigskip
+    Basic idea: Given variables $y_t$, instead of estimating one model just regress future
+    values of $y$ on current values at each horizon $k$. \bigskip
     
     At each horizon, run the following OLS regression:
 
     \begin{equation*}
-        y_{t+h} = \alpha^{(k)} + \beta^{(k)}x_t + \Gamma^{(k)}\mathbf{W}_t + u_{(k),t+h}
+        y_{t+k} = \alpha_k + \beta_k x_t + \gamma'_k r_t + \sum_{k=1}^p \delta'_k w_{t-k} + \varepsilon_{t+k}
     \end{equation*}
 
-    where $x_t$ are exogenous variable(s) and $W_t$ is a vector of control variables. \bigskip
+    where $x_t$ is the shock variable and $w_t$ is a vector of control variables, usually lags of
+    the endogenous variables. \bigskip
    
-    Under this setup, $\hat{\beta}^{(k)}$ captures the impulse response at horizon $k$. 
+    Under this setup, $\hat{\beta}_k$ captures the impulse response at horizon $k$. 
 
 \end{frame}
 
@@ -86,14 +87,14 @@
     \end{itemize} \bigskip
 
     Consistency: If the true DGP is VAR(p) and LP estimator includes the same lag structure, then
-    $\hat{\Gamma}_1^{(k)} \to_p A_1^k$ as $T \to \infty$.
+    $\hat{\delta}_k \to_p A_1^k$ as $T \to \infty$.
 
 \end{frame}
 
 \begin{frame}{Smooth Local Projections}
    
 	Barnichon and Brownlees (2019) propose utilising B-splines to smooth the resulting sequence
-    of LP estimates $\hat{\beta}^{(k)}$ \bigskip
+    of LP estimates $\hat{\beta}_k$ \bigskip
 
 	IRFs estimated by LP can deviate from the true IRF $\to$ smoothing can bring estimated
     impulse responses closer to the actual DGP \bigskip
@@ -122,11 +123,11 @@
         \item Nonzero only on a small interval defined by the knots
     \end{itemize} \bigskip
 
-    The splines are constructed as a weighted sum of these basis functions, with weights determined from
-    the data \bigskip
+    The splines are constructed as a weighted sum of these basis functions, with weights determined
+    from the data \bigskip
 
-    In short, we're really just interpolating the LP estimates $\beta^{(k)}$ with linear combinations of
-    smooth polynomials
+    In short, this is really just smoothing the LP estimates $\hat{\beta}_k$ with linear combinations
+    of polynomials (usually cubic)
 
 \end{frame}
 
@@ -141,23 +142,22 @@
 
 \begin{frame}{Where does our project fit in?}
 
-    Plan: write a generic python implementation of the SLP estimation procedure of Barnichon and
-    Brownlees (2019) \bigskip
+    Plan: write a generic python implementation of the SLP estimation procedure along with some 
+    demonstrations with simulated and real data
 
-    Objective: a fully-functioning set of methods to estimate IRFs by SLP given any arbitrary
-    time-series dataframe, along with a set of examples comparing the SLP method to standard VAR-based IRFs, using both simulated and real data
-    \bigskip
-
-    Some features we might consider (subject to revision): \bigskip
+    What we've got so far:
 
     \begin{itemize}
-        
-        \item Method to handle exogenous variables (analogue to VAR-X)
-        \item Extra smoothing options (GAM, p-splines, etc.)
-        \item Some plotting functionality
-        \item Turning the code into a Python package for use by other researchers
-        \item Creating example Jupyter notebooks to demonstrate the method and compare it to VAR-based IRFs
-    
+        \item Generic methods to estimate local projections
+        \item B-splines and some other smoothers (kernel and LOESS)
+    \end{itemize}
+
+    Some stuff we want to add (subject to revision):
+
+    \begin{itemize}
+        \item Some basic plotting functionality
+        \item Expository vignettes comparing SLP to VAR
+        \item Throwing together a Python package for public use (ambitious)    
     \end{itemize}
 
 \end{frame}
