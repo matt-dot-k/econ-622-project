@@ -1,4 +1,4 @@
-\documentclass[aspectratio=1610]{beamer}
+\documentclass{beamer}
 
 \usepackage{amsmath, amsfonts, amssymb}
 \usepackage{booktabs}
@@ -91,28 +91,6 @@
 
 \end{frame}
 
-\begin{frame}{Smooth Local Projections}
-   
-	Barnichon and Brownlees (2019) propose utilising B-splines to smooth the resulting sequence
-    of LP estimates $\hat{\beta}_k$ \bigskip
-
-	IRFs estimated by LP can deviate from the true IRF $\to$ smoothing can bring estimated
-    impulse responses closer to the actual DGP \bigskip
-
-	B-splines are also a well-suited smoothing method here: \bigskip
-
-	\begin{itemize}
-		
-		\item Flexible and data-adaptive (easily fine-tuned via knots or polynomial degree)
-
-		\item Computationally efficient due to local control properties 
-
-		\item Can be regularised without too much hassle
-	
-	\end{itemize}
-
-\end{frame}
-
 \begin{frame}{B-Splines}
 
     A B-spline is a collection of piecewise polynomials $B_{i,p}(x)$ in a variable $x$ \bigskip
@@ -126,8 +104,7 @@
     The splines are constructed as a weighted sum of these basis functions, with weights determined
     from the data \bigskip
 
-    In short, this is really just smoothing the LP estimates $\hat{\beta}_k$ with linear combinations
-    of polynomials (usually cubic)
+    General representation: $f(x) \approx \sum_{k=1}^K b_k B_k(x)$
 
 \end{frame}
 
@@ -140,10 +117,46 @@
 
 \end{frame}
 
+\begin{frame}{Smooth Local Projections (SLP)}
+   
+	Barnichon and Brownlees (2019) propose utilising B-splines to smooth the sequence of LP
+    estimates $\hat{\beta}_k$ \bigskip
+
+	IRFs estimated by LP can deviate from the true IRF $\to$ smoothing can bring estimated
+    impulse responses closer to the actual DGP \bigskip
+
+	B-splines are a pretty well-suited smoothing method here:
+
+	\begin{itemize}
+		
+		\item Flexible and data-adaptive (easily fine-tuned via knots or polynomial degree)
+		\item Computationally efficient due to local control properties 
+
+	\end{itemize}
+
+\end{frame}
+
+\begin{frame}{Smooth Local Projections (SLP)}
+
+    Overview of the SLP procedure:
+
+    \begin{enumerate}
+    
+        \item Form a B-spline basis $\mathbf{B}$
+
+        \item At each horizon $k$, evaluate the basis $\mathbf{B}$ to get $\mathbf{b}(k)$ and form $\tilde{\mathbf{X}}_k = \mathbf{b}(k)' x_t$
+
+        \item Stack all the relevant variables into a block-diagonal matrix
+
+        \item Estimate the B-spline coefficients in one-shot via L2 regularisation
+
+    \end{enumerate}
+
+\end{frame}
+
 \begin{frame}{Where does our project fit in?}
 
-    Plan: write a generic python implementation of the SLP estimation procedure along with some 
-    demonstrations with simulated and real data
+    Plan: write a generic python implementation of the SLP estimation procedure
 
     What we've got so far:
 
