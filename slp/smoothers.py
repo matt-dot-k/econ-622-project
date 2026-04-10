@@ -4,21 +4,6 @@ import scipy.interpolate as interp
 from pygam import LinearGAM, s
 from .results import LPResults
 
-class BSplineSmoother:
-
-    def __init__(self, lam: float, n_points: int = 1000):
-        self.lam = lam
-        self.n_points = n_points
-
-    def smooth(self, results: LPResults) -> np.ndarray:
-        irf = np.empty((self.n_points, results.k))
-        h_grid = np.linspace(0, results.H + 1, self.n_points)
-        for j in range(results.k):
-            beta_j = results.beta[:, j]
-            bs = interp.make_smoothing_spline(x = np.arange(0, results.H + 1), y = beta_j, lam = self.lam)
-            irf[:, j] = bs(h_grid)    
-        return irf
-
 class LoessSmoother:
     
     def __init__(self, frac: float = 0.5):

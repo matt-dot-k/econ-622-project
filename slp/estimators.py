@@ -45,8 +45,7 @@ class LocalProjections:
                 y_h = y[self.p + h: ]
                 lp_mod = sm.OLS(endog = y_h, exog = X_h)
                 lp_fit = lp_mod.fit(cov_type = 'HAC', cov_kwds = {'maxlags': h})
-                beta[h, j] = lp_fit.params[1]
-                
+                beta[h, j] = lp_fit.params[1]                
         return LPResults(beta = beta, H = self.H, k = self.k)
     
     def EndoLP(self):
@@ -64,3 +63,37 @@ class LocalProjections:
                 lp_fit = lp_mod.fit(cov_type = 'HAC', cov_kwds = {'maxlags': h})
                 beta[h, j] = lp_fit.params[1]
         return LPResults(beta = beta, H = self.H, k = self.k)
+
+class SmoothLocalProjections:
+
+    def __init__(self, data: pd.DataFrame, shock: str, endog: list[str],
+                 p: int, H: int, n_knots: int = 5, degree: int = 3):
+
+        Y_df = data.drop(columns = shock) if endog is None else data[endog]
+        Y = Y_df.to_numpy()
+        contemp = data.columns[:data.columns.get_loc(shock)].tolist()
+        Z = data[contemp].to_numpy()
+        x = data[shock].to_numpy()
+        var_names = Y_df.columns.tolist()
+
+        self.Y = Y_df.to_numpy()
+        self.T, self.k = self.Y.shape
+        self.Z = Z
+        self.x = x
+        self.p = p
+        self.H = H
+        self.n_knots = n_knots
+        self.degree = degree
+
+    # ----- function to build B-spline basis -----
+    def _build_bspline_basis(self) -> np.ndarray:
+        pass
+
+    # ----- difference penalty matrix -----
+    @staticmethod
+    def _diff_penalty(K: int, r: int = 2) -> np.ndarray:
+        pass
+
+    # ----- SLP estimator -----
+    def SLP(self, lam: float = 1.0, r: int = 2) -> SmoothLPResults:
+        pass

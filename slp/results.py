@@ -6,3 +6,9 @@ class LPResults:
     beta: np.ndarray
     H:    int
     k:    int
+
+@dataclass
+class SLPResults:
+    beta: np.ndarray
+    H:    int
+    k:    int
