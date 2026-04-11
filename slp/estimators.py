@@ -1,9 +1,11 @@
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
-from .results import LPResults
+import scipy.interpolate as interp
+import scipy.linalg as linalg
+from .results import LPResults, SLPResults
 
-class LocalProjections:
+class SmoothLocalProjections:
 
     def __init__(self, data: pd.DataFrame, shock: str, endog: list[str], shock_exo: bool,
                  p: int, H: int):
@@ -15,12 +17,15 @@ class LocalProjections:
         x = data[shock].to_numpy()
 
         self.Y = Y
+        self.T, self.k = Y.shape
         self.Z = Z
         self.x = x
         self.p = p
         self.H = H
-        self.T, self.k = Y.shape
-        self.beta = None
+
+    # ------------------------------------------
+    # Helper functions for LP and SLP estimators
+    # ------------------------------------------
 
     # ----- Build lag matrix W -----
     def _build_lag_matrix(self):
@@ -30,9 +35,27 @@ class LocalProjections:
             out[lag:, (lag - 1) * k : lag * k] = self.Y[:-lag]
         return out[self.p:]
 
-    # ---------------------------------------------------------------
-    # Local projections estimator for endogenous and exogenous shocks
-    # ---------------------------------------------------------------
+    # ----- Build B-spline basis -----
+    def _build_bspline_basis(self, n_knots, degree) -> np.ndarray:
+        horizons = np.arange(self.H + 1, dtype = float)
+        interior = np.quantile(horizons, np.linspace(0, 1, n_knots + 2)[1:-1])
+        knots = np.concatenate([
+            np.repeat(horizons[0], degree + 1),
+            interior,
+            np.repeat(horizons[-1], degree + 1),
+        ])
+        B = interp.BSpline.design_matrix(horizons, knots, degree).toarray()
+        return B
+
+    # ----- Difference penalty matrix -----
+    @staticmethod
+    def _diff_penalty(K: int, r: int = 2) -> np.ndarray:
+        D = np.diff(np.eye(K), n = r, axis = 0)
+        return D.T @ D
+
+    # -----------------------------------------------------------------------
+    # Classic local projections estimator for endogenous and exogenous shocks
+    # -----------------------------------------------------------------------
     def LP(self) -> LPResults:
         W = self._build_lag_matrix()
         beta = np.empty((self.H + 1, self.k))
@@ -53,58 +76,12 @@ class LocalProjections:
 
         return LPResults(beta = beta, H = self.H, k = self.k)
 
-class SmoothLocalProjections:
-
-    def __init__(self, data: pd.DataFrame, shock: str, endog: list[str], shock_exo: bool,
-                 p: int, H: int, n_knots: int = 5, degree: int = 3):
-
-        Y_df = data.drop(columns = shock) if endog is None else data[endog]
-        contemp = data.columns[:data.columns.get_loc(shock)].tolist()
-        Z = data[contemp].to_numpy() if shock_exo is True else None
-        Y = Y_df.to_numpy()
-        x = data[shock].to_numpy()
-
-        self.Y = Y
-        self.T, self.k = self.Y.shape
-        self.Z = Z
-        self.x = x
-        self.p = p
-        self.H = H
-        self.n_knots = n_knots
-        self.degree = degree
-
-    # ----- Build B-spline basis -----
-    def _build_bspline_basis(self) -> np.ndarray:
-        horizons = np.arange(self.H + 1, dtype = float)
-        interior = np.quantile(horizons, np.linspace(0, 1, self.n_knots + 2)[1:-1])
-        knots = np.concatenate([
-            np.repeat(horizons[0], self.degree + 1),
-            interior,
-            np.repeat(horizons[-1], self.degree + 1),
-        ])
-        B = interp.BSpline.design_matrix(horizons, knots, self.degree).toarray()
-        return B
-
-    # ----- Build lag matrix W -----
-    def _build_lag_matrix(self):
-        T, k = self.Y.shape
-        out = np.full((T, k * self.p), np.nan)
-        for lag in range(1, self.p + 1):
-            out[lag:, (lag - 1) * k : lag * k] = self.Y[:-lag]
-        return out[self.p:]
-
-    # ----- Difference penalty matrix -----
-    @staticmethod
-    def _diff_penalty(K: int, r: int = 2) -> np.ndarray:
-        D = np.diff(np.eye(K), n = r, axis = 0)
-        return D.T @ D
-
     # ----------------------------------------------------------------------
     # Smooth local projections estimator for endogenous and exogenous shocks
     # ---------------------------------------------------------------------- 
-    def SLP(self, lam: float = 1.0, r: int = 2) -> SmoothLPResults:
+    def SLP(self, n_knots: int = 5, degree: int = 3, lam: float = 1.0, r: int = 2) -> SLPResults:
         W = self._build_lag_matrix()
-        B = self._build_bspline_basis()
+        B = self._build_bspline_basis(n_knots, degree)
         beta = np.empty((self.H + 1, self.k))
         K = B.shape[1]
         n_w = W.shape[1]
