@@ -6,9 +6,27 @@ import scipy.linalg as linalg
 from .results import LPResults, SLPResults
 
 class SmoothLocalProjections:
+    """
+    Implements the smooth local projections (SLP) methodology of Barnichon
+    and Brownlees (2019).
+
+    Estimates impulse responses by stacking LP regressions across horizons,
+    approximating the IRF coefficients beta(h) with a B-spline basis expansion,
+    and solving via least squares with an L2 penalty.
+    """
 
     def __init__(self, data: pd.DataFrame, shock: str, endog: list[str], shock_exo: bool,
                  p: int, H: int):
+        """
+        Parameters
+        ----------
+        data      : A pandas DataFrame with relevant variables
+        shock     : Name of the shock variable (x_t)
+        endog     : List of names of endogenous variables (Y_t)
+        shock_exo : Boolean indicator for whether shock variable (x_t) is exogenous
+        p         : Lag order for the LP specification
+        H         : Maximum IRF forecast horizon
+        """
 
         Y_df = data.drop(columns = shock) if endog is None else data[endog]
         contemp = data.columns[:data.columns.get_loc(shock)].tolist()
@@ -29,6 +47,10 @@ class SmoothLocalProjections:
 
     # ----- Build lag matrix W -----
     def _build_lag_matrix(self):
+        """
+        Build a control matrix containing lags of endogenous variables.
+        Returns a (T-p) * (k * p) matrix.
+        """
         T, k = self.Y.shape
         out = np.full((T, k * self.p), np.nan)
         for lag in range(1, self.p + 1):
@@ -37,6 +59,11 @@ class SmoothLocalProjections:
 
     # ----- Build B-spline basis -----
     def _build_bspline_basis(self, n_knots, degree) -> np.ndarray:
+        """
+        Build a design matrix for a B-spline basis expansion evaluated at
+        integer horizons h = 0, ..., H. Returns a (H+1) * K matrix where
+        K = n_knots + degree + 1
+        """
         horizons = np.arange(self.H + 1, dtype = float)
         interior = np.quantile(horizons, np.linspace(0, 1, n_knots + 2)[1:-1])
         knots = np.concatenate([
@@ -50,6 +77,10 @@ class SmoothLocalProjections:
     # ----- Difference penalty matrix -----
     @staticmethod
     def _diff_penalty(K: int, r: int = 2) -> np.ndarray:
+        """
+        Build the penalty matrix D_r'D_r, where D_r is the r-th order
+        difference operator of size (K-r) * K. Returns a K * K matrix.
+        """
         D = np.diff(np.eye(K), n = r, axis = 0)
         return D.T @ D
 
@@ -57,8 +88,16 @@ class SmoothLocalProjections:
     # Classic local projections estimator for endogenous and exogenous shocks
     # -----------------------------------------------------------------------
     def LP(self) -> LPResults:
-        W = self._build_lag_matrix()
-        beta = np.empty((self.H + 1, self.k))
+        """
+        Estimate impulse responses to an exogenous or endogenous shock via the standard
+        local LP method of Jorda (2005).
+
+        Returns
+        ------
+        An LPResults object with an (H+1) * k matrix of estimated IRF coefficients.
+        """
+        W = self._build_lag_matrix()          # (T-p, k*p) 
+        beta = np.empty((self.H + 1, self.k)) # (H+1, k)
 
         for j in range(self.k):
             y = self.Y[:, j]
@@ -80,11 +119,30 @@ class SmoothLocalProjections:
     # Smooth local projections estimator for endogenous and exogenous shocks
     # ---------------------------------------------------------------------- 
     def SLP(self, n_knots: int = 5, degree: int = 3, lam: float = 1.0, r: int = 2) -> SLPResults:
-        W = self._build_lag_matrix()
-        B = self._build_bspline_basis(n_knots, degree)
-        beta = np.empty((self.H + 1, self.k))
+        """
+        Estimate impulse responses to an endogenous or exogenous shock
+        via penalised B-splines (P-splines)
+
+        Parameters
+        ----------
+        n_knots : Number of knots (q) for the B-spline basis. Basis is constructed
+                  using q + 2 inner knots.
+        degree  : Polynomial degree (p) for the B-spline basis expansion. Defaults
+                  to cubic splines (p = 3).
+        lam     : Shrinkage parameter lambda. (0 = OLS, large = polynomial of order
+                  r - 1). Can be externally selected via cross-validation.
+        r       : Order of the difference penalty (2 = shrink toward a linear function,
+                  3 = shrink toward a quadratic)
+
+        Returns
+        -------
+        An SLPResults object with an (H+1) * k matrix of estimated IRF coefficients.
+        """
+        W = self._build_lag_matrix()                   # (T-p, k*p)
+        B = self._build_bspline_basis(n_knots, degree) # (H+1, K)
+        beta = np.empty((self.H + 1, self.k))          # (H+1, k)
         K = B.shape[1]
-        n_w = W.shape[1]
+        n_w = W.shape[1]                               # no. of control columns
         if self.Z is not None:
             n_w += self.Z.shape[1]
 
@@ -125,6 +183,7 @@ class SmoothLocalProjections:
             X_cal = np.hstack([A_tilde, X_tilde, W_tilde])
 
             # ----- Ridge estimation of B-spline coefficients -----
+            # theta = (X'X + lam * P)^{-1} X'Y
             XtX = X_cal.T @ X_cal
             XtY = X_cal.T @ Y_cal
             theta = np.linalg.solve(XtX + lam * P_full, XtY)
