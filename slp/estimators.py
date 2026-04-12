@@ -1,3 +1,4 @@
+import warnings
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
@@ -69,8 +70,11 @@ class SmoothLocalProjections:
         out = np.full((T, k * self.p), np.nan)
         for lag in range(1, self.p + 1):
             out[lag:, (lag - 1) * k : lag * k] = self.Y[:-lag]
-        return out[self.p:]
-
+        W = out[self.p:]
+        assert W.shape == (T - self.p, k * self.p), (
+            f"lag matrix shape mismatch: expected ({T - self.p}, {k * self.p}), got {W.shape}"
+        )
+        return W
     # ----- Build B-spline basis -----
     def _build_bspline_basis(self, n_knots, degree) -> np.ndarray:
         """
@@ -86,6 +90,12 @@ class SmoothLocalProjections:
             np.repeat(horizons[-1], degree + 1),
         ])
         B = interp.BSpline.design_matrix(horizons, knots, degree).toarray()
+        assert B.shape == (self.H + 1, n_knots + degree + 1), (
+            f"B-spline basis shape mismatch: expected ({self.H + 1}, {n_knots + degree + 1}, got {B.shape})"
+        )
+        assert np.allclose(B.sum(axis = 1), 1.0), (
+            "B-spline rows do not sum to 1 - partition of unity violated"
+        )
         return B
 
     # ----- Difference penalty matrix -----
@@ -96,7 +106,11 @@ class SmoothLocalProjections:
         difference operator of size (K-r) * K. Returns a K * K matrix.
         """
         D = np.diff(np.eye(K), n = r, axis = 0)
-        return D.T @ D
+        P = D.T @ D
+        assert P.shape == (K, K), (
+            f"penalty matrix shape mismatch: expected({K},{K}), got {P.shape}"
+        )
+        return P
 
     # -----------------------------------------------------------------------
     # Classic local projections estimator for endogenous and exogenous shocks
@@ -123,10 +137,16 @@ class SmoothLocalProjections:
                 X_h = np.append(self.x[self.p:self.p + T_h].reshape(-1, 1), W[:T_h, :], axis = 1)
                 X_h = sm.add_constant(X_h)
                 y_h = y[self.p + h: ]
+                assert y_h.shape[0] == X_h.shape[0], (
+                    f"row count mismatch at h = {h}: y_h has {y_h.shape[0]} rows, X_h has {X_h.shape[0]}"
+                )
                 lp_mod = sm.OLS(endog = y_h, exog = X_h)
                 lp_fit = lp_mod.fit(cov_type = 'HAC', cov_kwds = {'maxlags': h})
                 beta[h, j] = lp_fit.params[1]
-
+        if not np.isfinite(beta).all():
+            raise ArithmeticError(
+                "non-finite values in LP IRF estimates; check data for outliers or multicollinearity"
+            )
         return LPResults(beta = beta, H = self.H, k = self.k)
 
     # ----------------------------------------------------------------------
@@ -171,7 +191,7 @@ class SmoothLocalProjections:
         if not (r < n_knots + degree + 1):
             raise ValueError(
                     f"r cannot exceed n_knots + degree + 1, otherwise penalty matrix will be "
-                    f"degenerate, got n_knots = {n_knots}, degree = {degree} and r = {r}"
+                    "degenerate, got n_knots = {n_knots}, degree = {degree} and r = {r}"
             )
 
         W = self._build_lag_matrix()                   # (T-p, k*p)
@@ -196,15 +216,23 @@ class SmoothLocalProjections:
             for h in range(self.H + 1):
                 T_h = self.T - self.p - h
                 b_h = B[h, :]
-                A_basis_h = np.tile(B[h, :], (T_h, 1))
+                A_basis_h = np.tile(b_h, (T_h, 1))
                 X_basis_h = np.outer(self.x[self.p:self.p + T_h], b_h)
                 W_h = W[:T_h, :]
                 if self.Z is not None:
                     W_h = np.hstack([self.Z[self.p:self.p + T_h], W_h])
-                W_basis_h = np.hstack([
-                    np.outer(W_h[:, c], B[h, :]) for c in range(W_h.shape[1])
-                ])
+                W_basis_h = np.hstack([np.outer(W_h[:, c], b_h) for c in range(W_h.shape[1])])
                 Y_h = self.Y[self.p + h:self.p + h + T_h, j]
+
+                assert X_basis_h.shape == (T_h, K), (
+                    f"X_basis_h shape mismatch at h = {h}: expected ({T_h}, {K}), got {X_basis_h.shape}"    
+                )
+                assert W_basis_h.shape == (T_h, n_w * K), (
+                    f"W_basis_h shape mismatch at h = {h}: expected ({T_h}, {n_w * K}), got {W_basis_h.shape}"
+                )
+                assert Y_h.shape[0] == T_h, (
+                    f"Y_h length mismatch at h = {h}: expected {T_h}, got {Y_h.shape[0]}"
+                )
 
                 Y_blocks.append(Y_h)
                 A_blocks.append(A_basis_h)
@@ -222,10 +250,30 @@ class SmoothLocalProjections:
             # theta = (X'X + lam * P)^{-1} X'Y
             XtX = X_cal.T @ X_cal
             XtY = X_cal.T @ Y_cal
-            theta = np.linalg.solve(XtX + lam * P_full, XtY)
-
+            assert XtX.shape == P_full.shape, (
+                f"XtX shape {XtX.shape} != P_full shape {P_full.shape} - cannot add penalty"
+            )
+            mat = XtX + lam * P_full
+            cond = np.linalg.cond(mat)
+            if cond > 1e12:
+                warnings.warn(
+                    f"near-singular system for variable j = {j} (condition number {cond:.2e}); "
+                    "solution may be inaccurate — try increasing lam or reducing n_knots",
+                    RuntimeWarning,
+                    stacklevel = 2,
+                )
+            theta = np.linalg.solve(mat, XtY)
+            if not np.isfinite(theta).all():
+                raise ArithmeticError(
+                    f"non-finite values in theta for variable j = {j}; system may be near-singular"
+                    "try increasing lam or reducing n_knots"
+                )
             # ----- Recover impulse response: beta(h) = B @ delta
             delta = theta[K:2*K]
             beta[:, j] = B @ delta
+            if not np.isfinite(beta[:, j]).all():
+                raise ArithmeticError(
+                    f"non-finite values in SLP IRF estimates for variable j = {j}"
+                )
 
         return SLPResults(beta = beta, H = self.H, k = self.k)
