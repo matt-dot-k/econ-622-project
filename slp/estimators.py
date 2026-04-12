@@ -27,6 +27,20 @@ class SmoothLocalProjections:
         p         : Lag order for the LP specification
         H         : Maximum IRF forecast horizon
         """
+        # ----- Input checks -----
+        if not isinstance(data, pd.DataFrame):
+            raise TypeError(f"expected pd.DataFrame, got {type(data)}")
+        if not isinstance(endog, list) or not all(isinstance(e, str) for e in endog):
+            raise TypeError(f"endog must be list of strings, got {type(endog)}")
+        if not isinstance(shock_exo, bool):
+            raise TypeError(f"expected bool, got {type(shock_exo)}")
+        if not shock_exo and data.columns.get_loc(shock) == 0:
+            raise ValueError(f"shock is endogenous but no columns precede shock in data - no instruments available.")
+        T = len(data)
+        if H >= T:
+            raise ValueError(f"H must be less than the number of observations, got H = {H}, T = {T}")
+        if p >= T:
+            raise ValueError(f"p must be less than the number of observations, got p = {p}, T = {T}")
 
         Y_df = data.drop(columns = shock) if endog is None else data[endog]
         contemp = data.columns[:data.columns.get_loc(shock)].tolist()
@@ -138,6 +152,28 @@ class SmoothLocalProjections:
         -------
         An SLPResults object with an (H+1) * k matrix of estimated IRF coefficients.
         """
+        # ----- Input checks -----
+        if not isinstance(n_knots, int):
+            raise TypeError(f"expected int, got {type(n_knots)}")
+        if not isinstance(degree, int):
+            raise TypeError(f"expected int, got {type(degree)}")
+        if not isinstance(lam, (int, float)):
+            raise TypeError(f"expected float, got {type(lam)}")
+        if not isinstance(r, int):
+            raise TypeError(f"expected int, got {type(r)}")
+        if not (n_knots > 0):
+            raise ValueError(
+                f"at least 1 knot required for B-spline basis, got n_knots = {n_knots}")
+        if not (degree > 0):
+            raise ValueError(f"minimum degree 1 required to form B-spline basis, got degree = {degree}")
+        if not (lam >= 0):
+            raise ValueError(f"penalty term must be at least 0, got lam = {lam}")
+        if not (r < n_knots + degree + 1):
+            raise ValueError(
+                    f"r cannot exceed n_knots + degree + 1, otherwise penalty matrix will be "
+                    f"degenerate, got n_knots = {n_knots}, degree = {degree} and r = {r}"
+            )
+
         W = self._build_lag_matrix()                   # (T-p, k*p)
         B = self._build_bspline_basis(n_knots, degree) # (H+1, K)
         beta = np.empty((self.H + 1, self.k))          # (H+1, k)
