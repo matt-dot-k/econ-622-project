@@ -8,12 +8,10 @@ from .results import LPResults, SLPResults
 
 class SmoothLocalProjections:
     """
-    Implements the smooth local projections (SLP) methodology of Barnichon
-    and Brownlees (2019).
+    Implements the smooth local projections (SLP) methodology of Barnichon and Brownlees (2019).
 
-    Estimates impulse responses by stacking LP regressions across horizons,
-    approximating the IRF coefficients beta(h) with a B-spline basis expansion,
-    and solving via least squares with an L2 penalty.
+    Estimates impulse responses by stacking LP regressions across horizons, approximating IRF
+    coefficients beta(h) with a B-spline basis expansion, and solving via penalised least squares.
     """
 
     def __init__(self, data: pd.DataFrame, shock: str, endog: list[str], shock_exo: bool,
@@ -21,12 +19,20 @@ class SmoothLocalProjections:
         """
         Parameters
         ----------
-        data      : A pandas DataFrame with relevant variables
-        shock     : Name of the shock variable (x_t)
-        endog     : List of names of endogenous variables (Y_t)
-        shock_exo : Boolean indicator for whether shock variable (x_t) is exogenous
-        p         : Lag order for the LP specification
-        H         : Maximum IRF forecast horizon
+        data      : pd.Dataframe
+                    A pandas DataFrame with relevant variables. If data contains endogenous
+                    shocks, the endogenous variables must be contemporaneously ordered.
+        shock     : str
+                    Name of the shock variable (x_t)
+        endog     : list[str]
+                    List of names of endogenous variables (Y_t). If None, all variables
+                    are assumed to be endogenous.
+        shock_exo : bool
+                    Boolean indicator for whether shock variable (x_t) is exogenous
+        p         : int
+                    Lag order for the LP specification
+        H         : int
+                    Maximum IRF forecast horizon
         """
         # ----- Input checks -----
         if not isinstance(data, pd.DataFrame):
@@ -43,8 +49,7 @@ class SmoothLocalProjections:
         if p >= T:
             raise ValueError(f"p must be less than the number of observations, got p = {p}, T = {T}")
 
-        Y_df = data.drop(columns = shock) if endog is None else data[endog]
-        Y = Y_df.to_numpy()
+        Y = data.to_numpy()
         x = data[shock].to_numpy()
         if not shock_exo:
             contemp = data.columns[:data.columns.get_loc(shock)].tolist()
@@ -78,6 +83,7 @@ class SmoothLocalProjections:
             f"lag matrix shape mismatch: expected ({T - self.p}, {k * self.p}), got {W.shape}"
         )
         return W
+
     # ----- Build B-spline basis -----
     def _build_bspline_basis(self, n_knots, degree) -> np.ndarray:
         """
@@ -88,17 +94,17 @@ class SmoothLocalProjections:
         horizons = np.arange(self.H + 1, dtype = float)
         interior = np.quantile(horizons, np.linspace(0, 1, n_knots + 2)[1:-1])
         knots = np.concatenate([
-            np.repeat(horizons[0], degree + 1),
-            interior,
-            np.repeat(horizons[-1], degree + 1),
+            np.repeat(horizons[0], degree + 1), interior, np.repeat(horizons[-1], degree + 1),
         ])
         B = interp.BSpline.design_matrix(horizons, knots, degree).toarray()
+
         assert B.shape == (self.H + 1, n_knots + degree + 1), (
             f"B-spline basis shape mismatch: expected ({self.H + 1}, {n_knots + degree + 1}, got {B.shape})"
         )
         assert np.allclose(B.sum(axis = 1), 1.0), (
             "B-spline rows do not sum to 1 - partition of unity violated"
         )
+
         return B
 
     # ----- Difference penalty matrix -----
@@ -130,8 +136,10 @@ class SmoothLocalProjections:
         W = self._build_lag_matrix()          # (T-p, k*p) 
         beta = np.empty((self.H + 1, self.k)) # (H+1, k)
 
+        # ----- Loop over response variables -----
         for j in range(self.k):
             y = self.Y[:, j]
+            # ----- OLS at each horizon -----
             for h in range(self.H + 1):
                 T_h = self.T - self.p - h
                 W_h = W[:T_h, :]
@@ -146,6 +154,8 @@ class SmoothLocalProjections:
                 lp_mod = sm.OLS(endog = y_h, exog = X_h)
                 lp_fit = lp_mod.fit(cov_type = 'HAC', cov_kwds = {'maxlags': h})
                 beta[h, j] = lp_fit.params[1]
+ 
+        # ----- Check finiteness of estimates -----
         if not np.isfinite(beta).all():
             raise ArithmeticError(
                 "non-finite values in LP IRF estimates; check data for outliers or multicollinearity"
@@ -162,14 +172,18 @@ class SmoothLocalProjections:
 
         Parameters
         ----------
-        n_knots : Number of knots (q) for the B-spline basis. Basis is constructed
-                  using q + 2 inner knots.
-        degree  : Polynomial degree (p) for the B-spline basis expansion. Defaults
-                  to cubic splines (p = 3).
-        lam     : Shrinkage parameter lambda. (0 = OLS, large = polynomial of order
-                  r - 1). Can be externally selected via cross-validation.
-        r       : Order of the difference penalty (2 = shrink toward a linear function,
-                  3 = shrink toward a quadratic)
+        n_knots : int
+                  Number of knots (q) for the B-spline basis. Basis is constructed using
+                  q + 2 inner knots.
+        degree  : int
+                  Polynomial degree (p) for the B-spline basis expansion. Defaults to
+                  cubic splines (p = 3).
+        lam     : float
+                  Shrinkage parameter lambda. (0 = OLS, large = polynomial of order r - 1).
+                  Can be externally selected via cross-validation.
+        r       : int
+                  Order of the difference penalty (2 = shrinks toward a linear function,
+                  3 = shrinks toward a quadratic function)
 
         Returns
         -------
@@ -208,14 +222,15 @@ class SmoothLocalProjections:
         # ----- Build penalty matrix -----
         P_block = self._diff_penalty(K, r)
         P_full = linalg.block_diag(np.zeros((K, K)), P_block, *[P_block] * n_w)
-
+        
+        # ----- Loop over each response variable -----
         for j in range(self.k):
-            # ----- Stack across horizons -----
             Y_blocks = []
             A_blocks = []
             W_blocks = []
             X_blocks = []
 
+            # ----- Stack across horizons -----
             for h in range(self.H + 1):
                 T_h = self.T - self.p - h
                 b_h = B[h, :]
@@ -227,6 +242,7 @@ class SmoothLocalProjections:
                 W_basis_h = np.hstack([np.outer(W_h[:, c], b_h) for c in range(W_h.shape[1])])
                 Y_h = self.Y[self.p + h:self.p + h + T_h, j]
 
+                # ----- Check matrix dimensions -----
                 assert X_basis_h.shape == (T_h, K), (
                     f"X_basis_h shape mismatch at h = {h}: expected ({T_h}, {K}), got {X_basis_h.shape}"    
                 )
@@ -255,7 +271,8 @@ class SmoothLocalProjections:
             XtY = X_cal.T @ Y_cal
             assert XtX.shape == P_full.shape, (
                 f"XtX shape {XtX.shape} != P_full shape {P_full.shape} - cannot add penalty"
-            )
+            ) 
+            # ----- Check condition number of least squares problem -----
             mat = XtX + lam * P_full
             cond = np.linalg.cond(mat)
             if cond > 1e12:
@@ -271,12 +288,11 @@ class SmoothLocalProjections:
                     f"non-finite values in theta for variable j = {j}; system may be near-singular"
                     "try increasing lam or reducing n_knots"
                 )
-            # ----- Recover impulse response: beta(h) = B @ delta
+            # ----- Recover impulse response: beta(h) = B @ delta -----
             delta = theta[K:2*K]
             beta[:, j] = B @ delta
             if not np.isfinite(beta[:, j]).all():
                 raise ArithmeticError(
                     f"non-finite values in SLP IRF estimates for variable j = {j}"
                 )
-
         return SLPResults(beta = beta, H = self.H, k = self.k)
