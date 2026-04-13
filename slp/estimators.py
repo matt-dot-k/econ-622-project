@@ -31,8 +31,8 @@ class SmoothLocalProjections:
         # ----- Input checks -----
         if not isinstance(data, pd.DataFrame):
             raise TypeError(f"expected pd.DataFrame, got {type(data)}")
-        if not isinstance(endog, list) or not all(isinstance(e, str) for e in endog):
-            raise TypeError(f"endog must be list of strings, got {type(endog)}")
+        if endog is not None and (not isinstance(endog, list) or not all(isinstance(e, str) for e in endog)):
+            raise TypeError(f"endog must be a list of strings or None, got {type(endog)}")
         if not isinstance(shock_exo, bool):
             raise TypeError(f"expected bool, got {type(shock_exo)}")
         if not shock_exo and data.columns.get_loc(shock) == 0:
@@ -44,10 +44,13 @@ class SmoothLocalProjections:
             raise ValueError(f"p must be less than the number of observations, got p = {p}, T = {T}")
 
         Y_df = data.drop(columns = shock) if endog is None else data[endog]
-        contemp = data.columns[:data.columns.get_loc(shock)].tolist()
-        Z = data[contemp].to_numpy() if shock_exo is True else None
         Y = Y_df.to_numpy()
         x = data[shock].to_numpy()
+        if not shock_exo:
+            contemp = data.columns[:data.columns.get_loc(shock)].tolist()
+            Z = data[contemp].to_numpy()
+        else:
+            Z = None
 
         self.Y = Y
         self.T, self.k = Y.shape
