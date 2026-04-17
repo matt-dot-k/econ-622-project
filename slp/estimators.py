@@ -2,8 +2,8 @@ import warnings
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
-import scipy.interpolate as interp
 import scipy.linalg as linalg
+from scipy.interpolate import BSpline
 from .results import LPResults, SLPResults
 
 class SmoothLocalProjections:
@@ -96,7 +96,7 @@ class SmoothLocalProjections:
         knots = np.concatenate([
             np.repeat(horizons[0], degree + 1), interior, np.repeat(horizons[-1], degree + 1),
         ])
-        B = interp.BSpline.design_matrix(horizons, knots, degree).toarray()
+        B = BSpline.design_matrix(horizons, knots, degree).toarray()
 
         assert B.shape == (self.H + 1, n_knots + degree + 1), (
             f"B-spline basis shape mismatch: expected ({self.H + 1}, {n_knots + degree + 1}, got {B.shape})"
@@ -145,7 +145,7 @@ class SmoothLocalProjections:
                 W_h = W[:T_h, :]
                 if self.Z is not None:
                     W_h = np.hstack([self.Z[self.p:self.p  + T_h], W_h])
-                X_h = np.append(self.x[self.p:self.p + T_h].reshape(-1, 1), W[:T_h, :], axis = 1)
+                X_h = np.append(self.x[self.p:self.p + T_h].reshape(-1, 1), W_h, axis = 1)
                 X_h = sm.add_constant(X_h)
                 y_h = y[self.p + h: ]
                 assert y_h.shape[0] == X_h.shape[0], (
