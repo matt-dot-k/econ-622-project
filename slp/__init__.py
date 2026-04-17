@@ -1,4 +1,4 @@
 # slp/__init__.py
-from .estimators import LocalProjections, SmoothLocalProjections
+from .estimators import SmoothLocalProjections
 from .smoothers import KernelSmoother, LoessSmoother
 from .results import LPResults, SLPResults
