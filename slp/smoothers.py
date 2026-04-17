@@ -1,7 +1,6 @@
 import numpy as np
 import scipy.stats as stats
 import scipy.interpolate as interp
-from pygam import LinearGAM, s
 from .results import LPResults
 
 class LoessSmoother:
