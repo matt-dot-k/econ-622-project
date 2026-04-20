@@ -22,6 +22,15 @@ $$
 
 Where $B_k:\mathbb{R}\to\mathbb{R}$ for $k=1,...K$ is a set of B-spline basis functions and $a_k,b_k,c_{ik}$ for $k=1,...,K$ is a set of scalar coefficients. This library contains a set of generic routines for estimating impulse responses of endogenous and exogenous shocks using the SLP approximation above. In addition, it contains routines for performing classic local projections estimation.
 
+### Setup
+
+To start, clone the repository and move the `slp` folder into the directory which contains data you want to use. Then install required dependencies
+with `uv` like so:
+
+```{shell}
+uv sync
+```
+
 ### Example Usage
 
 The following code shows a basic expository example of how to utilise the methods available in this repository:
@@ -64,6 +73,10 @@ lp_irf_loess = LoessSmoother(frac = 0.66).smooth(lp_irf)
 print(lp_irf_kernel)
 print(lp_irf_loess)
 ```
+
+### Disclosure of AI Use
+
+Claude (Sonnet 4.6) was used to help assist in debugging and refactoring code, writing assertions and input checks, and generating pseudocode to validate and assist in the implementation of the estimation procedures.
 
 ### References
 

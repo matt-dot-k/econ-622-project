@@ -1,4 +1,4 @@
-# lp/__init__.py
-from .estimators import LocalProjections
-from .smoothers import BSplineSmoother, GAMSmoother, KernelSmoother
-from .results import LPResults
+# slp/__init__.py
+from .estimators import SmoothLocalProjections
+from .smoothers import KernelSmoother, LoessSmoother
+from .results import LPResults, SLPResults

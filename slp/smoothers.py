@@ -1,49 +1,67 @@
 import numpy as np
 import scipy.stats as stats
 import scipy.interpolate as interp
-from pygam import LinearGAM, s
 from .results import LPResults
 
-class BSplineSmoother:
-
-    def __init__(self, lam: float, n_points: int = 1000):
-        self.lam = lam
-        self.n_points = n_points
+class LoessSmoother:
+    """
+    A simple LOESS smoother. Smooths the resulting sequence of IRF coefficients
+    by weighted linear least squares on subsets of coefficients.
+    """
+    
+    def __init__(self, frac: float = 0.5):
+        """
+        Parameters
+        ----------
+        frac : The fraction of observations to use in each local regression.
+        """
+        if not (0 < frac <= 1):
+            raise ValueError(f"frac must be in (0, 1], got {frac}")
+        self.frac = frac
 
     def smooth(self, results: LPResults) -> np.ndarray:
-        irf = np.empty((self.n_points, results.k))
-        h_grid = np.linspace(0, results.H + 1, self.n_points)
+        """
+        Returns
+        -------
+        An (H+1) * k matrix containing the smoothed IRF coefficients.
+
+        """
+        irf = np.empty((results.H + 1, results.k))
+        h_grid = np.arange(results.H + 1)
         for j in range(results.k):
             beta_j = results.beta[:, j]
-            bs = interp.make_smoothing_spline(x = np.arange(0, results.H + 1), y = beta_j, lam = self.lam)
-            irf[:, j] = bs(h_grid)
-            
-        return irf
-
-class GAMSmoother:
-    
-    def __init__(self, n_points: int = 1000):
-
-        self.n_points = n_points
-
-    def smooth(self, results: LPResults) -> np.ndarray:
-        irf = np.empty((self.n_points, results.k))
-        h_grid = np.linspace(0, results.H + 1, self.n_points)
-        for j in range(self.k):
-            beta_j = results.beta[:, j]
-            gam = LinearGAM(s(0), fit_intercept = True).fit(X = np.arange(0, results.H + 1), y = beta_j)
-            irf[:, j] = gam.predict(h_grid)
-        
+            loess = sm.nonparametric.lowess(endog = beta_j, exog = h_grid, frac = self.frac)
+            irf[:, j] = loess[:, 1]
         return irf
 
 class KernelSmoother:
+    """
+    A simple kernel smoother. Smooths the resulting sequence of IRF coefficients
+    via a weighted average, using a kernel function to determine the weights.
+    """
 
     def __init__(self, kernel: str = "gaussian", band: float = 1.0):
-        
+        valid_kernels = {"gaussian", "uniform", "epanechnikov"}
+        if kernel not in valid_kernels:
+            raise ValueError(f"kernel must be one of {valid_kernels}, got {kernel!r}")
+        if band <= 0:
+            raise ValueError(f"band must be strictly positive, got {band}")
+        """
+        Parameters
+        ----------
+        kernel : A string specifying the kernel function to use.
+        band   : The bandwidth for the kernel function. Larger values create a 
+                 smoother curve, smaller values track the LP IRF more closely.
+        """
         self.kernel = kernel
         self.band = band
 
     def smooth(self, results: LPResults) -> np.ndarray:
+        """
+        Returns
+        -------
+        An (H+1) * k matrix containing the smoothed IRF coefficients.
+        """
         h_seq = np.arange(results.H + 1).reshape(-1, 1)
         dist = np.abs(h_seq - h_seq.T).astype(float)
         match self.kernel:
@@ -54,5 +72,9 @@ class KernelSmoother:
             case "epanechnikov":
                 u = dist / self.band
                 S = np.where(np.abs(u) <= 1, 0.75 * (1 - u ** 2), 0.0)
+        row_sums = S.sum(axis = 1, keepdims = True)
+        if np.any(row_sums == 0):
+            raise ValueError("kernel weights sum to zero for at least one horizon - try increasing band")
         S = S / S.sum(axis = 1, keepdims = True)
-        return S @ results.beta
+        irf = S @ results.beta
+        return irf
