@@ -1,2 +1,0 @@
-# ECON 622 Final Project
-This branch contains examples of IRF estimation by SLPs using our implementation. Estimation is done with both simulated data based on a simple RBC model and using real data. The simulations allow for comparison of the SLP results to the true underlying IRF and VAR estimates. The real data allows for comparison to VAR estimates and demonstrates an application to monetary policy research. 
